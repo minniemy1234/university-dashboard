@@ -35,10 +35,23 @@ const [searchText, setSearchText] = useState("");
 
 
 
+
   const dashboardData = useMemo(() => {
     const stored = localStorage.getItem("dashboardData");
     return stored ? JSON.parse(stored) : null;
   }, []);
+  console.log(dashboardData);
+  console.log(
+  dashboardData?.["จำนวนนิสิตลงทะเบียน"]?.[0]
+);
+
+console.log(
+  dashboardData?.["จำนวนนิสิตคงอยู่"]?.[0]
+);
+
+console.log(
+  dashboardData?.["ภาวะการมีงานทำ"]?.[0]
+);
 
   const tcas =
     dashboardData?.["TCAS64-67"] || [];
@@ -134,50 +147,96 @@ filteredTCAS.forEach((item) => {
 const chartData =
   Object.values(groupedData);
  
-  let admitted = 0;
-  let enrolled = 0;
-  let retained = 0;
-  let lecturers = 0;
-  let graduates = 0;
+let admitted = 0;
+let enrolled = 0;
+let retained = 0;
+let lecturers = 0;
+let graduates = 0;
 
-  if (dashboardData) {
-    const register =
-      dashboardData["จำนวนนิสิตลงทะเบียน"] || [];
+let totalStudents = 0;
 
-    const retain =
-      dashboardData["จำนวนนิสิตคงอยู่"] || [];
+ 
+if (dashboardData) {
+const register =
+dashboardData["จำนวนนิสิตลงทะเบียน"] || [];
+console.log(register[0]);
 
-    const teacher =
-      dashboardData["อาจารย์สาขา"] || [];
-      
-    const graduateData =
-     dashboardData["ผู้สำเร็จการศึกษา"] || [];
+const retain =
+dashboardData["จำนวนนิสิตคงอยู่"] || [];
+console.log(retain[0]);
+console.log(retain.length);
 
-graduates = graduateData.length;
+const teacher =
+dashboardData["อาจารย์สาขา"] || [];
 
-  admitted =
-  filteredTCAS.reduce(
+const employment =
+dashboardData["ภาวะการมีงานทำ"] || [];
+
+ const filteredRegister = register.filter(
+  (item) =>
+    !selectedYear ||
+    item["ปีการศึกษา"] == selectedYear
+);
+
+totalStudents =
+  filteredRegister.reduce(
+    (sum, item) =>
+      sum +
+      Number(item["ชั้นปีที่ 1"] || 0) +
+      Number(item["ชั้นปีที่ 2"] || 0) +
+      Number(item["ชั้นปีที่ 3"] || 0) +
+      Number(item["ชั้นปีที่ 4"] || 0) +
+      Number(item["ชั้นปีที่ 5"] || 0) +
+      Number(item["ชั้นปีที่ 6"] || 0),
+    0
+  );
+  
+
+
+  
+
+graduates =
+  employment.reduce(
     (sum, item) =>
       sum +
       Number(
-        item["จำนวนรับ"] || 0
+        item["ผู้สำเร็จการศึกษา"] || 0
       ),
     0
   );
 
-    enrolled =
-  filteredTCAS.reduce(
-    (sum, item) =>
-      sum +
-      Number(
-        item["จำนวนผู้สมัคร"] || 0
-      ),
-    0
-  );
+retained =
+  retain.reduce((sum, item) => {
+    const key =
+      `จำนวนนิสิตคงอยู่ ปีการศึกษา ${selectedYear} ภาคต้น`;
 
-    retained = retain.length;
-    lecturers = teacher.length;
-  }
+    return (
+      sum +
+      Number(item[key] || 0)
+    );
+  }, 0);lecturers = teacher.length;
+
+admitted =
+filteredTCAS.reduce(
+(sum, item) =>
+sum +
+Number(
+item["จำนวนรับ"] || 0
+),
+0
+);
+
+enrolled =
+filteredTCAS.reduce(
+(sum, item) =>
+sum +
+Number(
+item["จำนวนผู้สมัคร"] || 0
+),
+0
+);
+}
+
 
   const columns = [
   {
@@ -221,6 +280,22 @@ graduates = graduateData.length;
   enrolled > 0
     ? (
         (admitted / enrolled) *
+        100
+      ).toFixed(2)
+    : 0;
+
+    const retentionRate =
+  totalStudents > 0
+    ? (
+        (retained / totalStudents) *
+        100
+      ).toFixed(2)
+    : 0;
+
+const graduationRate =
+  totalStudents > 0
+    ? (
+        (graduates / totalStudents) *
         100
       ).toFixed(2)
     : 0;
@@ -605,7 +680,7 @@ graduates = graduateData.length;
             margin: 0,
           }}
         >
-          {enrolled.toLocaleString()}
+         {totalStudents.toLocaleString()}
         </h1>
 
         <p style={{ marginTop: 10 }}>
@@ -706,7 +781,7 @@ graduates = graduateData.length;
         อัตราการคงอยู่
       </h4>
 
-      <h2>92%</h2>
+      <h2>{retentionRate}%</h2>
     </div>
 
     <div>
@@ -714,7 +789,7 @@ graduates = graduateData.length;
         อัตราสำเร็จการศึกษา
       </h4>
 
-      <h2>87%</h2>
+      <h2>{graduationRate}%</h2>
     </div>
 
     <div>
@@ -722,7 +797,7 @@ graduates = graduateData.length;
         นิสิตสำเร็จการศึกษา
       </h4>
 
-      <h2>{graduates}</h2>
+      <h2>{graduates.toLocaleString()}</h2>
     </div>
 
     <div>
@@ -747,7 +822,8 @@ graduates = graduateData.length;
 
   <ul>
     <li>
-      ผู้สมัครทั้งหมด {enrolled.toLocaleString()} คน
+      ผู้สมัครทั้งหมด 
+      {totalStudents.toLocaleString()} คน
     </li>
 
     <li>

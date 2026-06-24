@@ -1,24 +1,105 @@
 import { Layout, Card } from "antd";
+
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  
+} from "recharts";
 import Sidebar from "../components/Sidebar";
 
 const { Header, Content } = Layout;
 
 function SummaryPage() {
-  const dashboardData = JSON.parse(
+  const dashboardData =
+  JSON.parse(
     localStorage.getItem("dashboardData")
-  );
+  ) || {};
 
   const students =
-    dashboardData?.["จำนวนนิสิตลงทะเบียน"] || [];
+dashboardData?.["จำนวนนิสิตลงทะเบียน"] || [];
 
-  const teachers =
-    dashboardData?.["อาจารย์สาขา"] || [];
+const teachers =
+dashboardData?.["อาจารย์สาขา"] || [];
 
-  const graduates =
-    dashboardData?.["ผู้สำเร็จการศึกษา"] || [];
+const employment =
+dashboardData?.["ภาวะการมีงานทำ"] || [];
 
-  const employment =
-    dashboardData?.["ภาวะการมีงานทำ"] || [];
+// นิสิตทั้งหมด
+const totalStudents =
+students.reduce(
+(sum, item) =>
+sum +
+Number(item["ชั้นปีที่ 1"] || 0) +
+Number(item["ชั้นปีที่ 2"] || 0) +
+Number(item["ชั้นปีที่ 3"] || 0) +
+Number(item["ชั้นปีที่ 4"] || 0) +
+Number(item["ชั้นปีที่ 5"] || 0) +
+Number(item["ชั้นปีที่ 6"] || 0),
+0
+);
+
+// ผู้สำเร็จการศึกษา
+const totalGraduates =
+employment.reduce(
+(sum, item) =>
+sum +
+Number(
+item["ผู้สำเร็จการศึกษา"] || 0
+),
+0
+);
+
+// ผู้มีงานทำ
+const employed =
+employment.reduce(
+(sum, item) =>
+sum +
+Number(
+item["ผู้มีงานทำ"] || 0
+),
+0
+);
+
+const employmentRate =
+totalGraduates > 0
+? (
+(employed /
+totalGraduates) *
+100
+).toFixed(2)
+: 0;
+
+const chartData = [
+  {
+    name: "นิสิต",
+    value: totalStudents,
+  },
+  {
+    name: "สำเร็จ",
+    value: totalGraduates,
+  },
+  {
+    name: "อาจารย์",
+    value: teachers.length,
+  },
+];
+
+const employmentChart =
+  employment.map((item) => ({
+    name: item["ชื่อสาขา"],
+    employed: Number(
+      item["ผู้มีงานทำ"] || 0
+    ),
+  }));
+
+
 
   return (
     <Layout style={{ minHeight: "100vh" }}>
@@ -32,7 +113,7 @@ function SummaryPage() {
             fontWeight: "bold",
           }}
         >
-          รายงานสรุปมหาวิทยาลัย
+          รายงานสรุป
         </Header>
 
         <Content
@@ -47,67 +128,153 @@ function SummaryPage() {
               gridTemplateColumns:
                 "repeat(4,1fr)",
               gap: 20,
+              marginBottom: 24,
             }}
           >
             <Card>
               <h3>นิสิตทั้งหมด</h3>
-              <h1>{students.length}</h1>
+              <h1>
+                {totalStudents.toLocaleString()}
+              </h1>
             </Card>
 
             <Card>
-              <h3>อาจารย์ทั้งหมด</h3>
-              <h1>{teachers.length}</h1>
+              <h3>สำเร็จการศึกษา</h3>
+              <h1>
+                {totalGraduates.toLocaleString()}
+              </h1>
             </Card>
 
             <Card>
-              <h3>ผู้สำเร็จการศึกษา</h3>
-              <h1>{graduates.length}</h1>
+              <h3>อาจารย์</h3>
+              <h1>
+                {teachers.length.toLocaleString()}
+              </h1>
             </Card>
 
             <Card>
-              <h3>ข้อมูลการมีงานทำ</h3>
-              <h1>{employment.length}</h1>
+              <h3>มีงานทำ</h3>
+              <h1>
+                {employmentRate}%
+              </h1>
             </Card>
           </div>
 
-          <Card
-            style={{
-              marginTop: 24,
-            }}
-          >
-            <h2>สรุปข้อมูล</h2>
 
+<Card
+  title="ภาพรวมมหาวิทยาลัย"
+  style={{ marginBottom: 24 }}
+>
+  <ResponsiveContainer
+    width="100%"
+    height={350}
+  >
+    <BarChart data={chartData}>
+      <CartesianGrid strokeDasharray="3 3" />
+
+      <XAxis dataKey="name" />
+
+      <YAxis />
+
+      <Tooltip />
+
+      <Bar dataKey="value" />
+    </BarChart>
+  </ResponsiveContainer>
+</Card>
+
+<Card
+  title="ผู้มีงานทำแยกตามสาขา"
+  style={{
+    marginBottom: 24,
+    marginTop: 24,
+  }}
+>
+  <ResponsiveContainer
+    width="100%"
+    height={400}
+  >
+    <BarChart
+      data={employmentChart}
+    >
+      <CartesianGrid
+        strokeDasharray="3 3"
+      />
+<XAxis
+  dataKey="name"
+  angle={-45}
+  textAnchor="end"
+  height={100}
+/>
+
+      <YAxis />
+
+      <Tooltip />
+
+      <Bar
+        dataKey="employed"
+      />
+    </BarChart>
+  </ResponsiveContainer>
+</Card>
+<Card
+  title="สัดส่วนข้อมูล"
+  style={{
+    marginBottom: 24,
+  }}
+>
+  <ResponsiveContainer
+    width="100%"
+    height={350}
+  >
+    <PieChart>
+      <Pie
+        data={[
+          {
+            name: "นิสิต",
+            value: totalStudents,
+          },
+          {
+            name: "สำเร็จ",
+            value: totalGraduates,
+          },
+          {
+            name: "อาจารย์",
+            value: teachers.length,
+          },
+        ]}
+        dataKey="value"
+        nameKey="name"
+        outerRadius={120}
+        label
+      />
+      <Tooltip />
+    </PieChart>
+  </ResponsiveContainer>
+</Card>
+
+          <Card
+            title="สรุปข้อมูลมหาวิทยาลัย"
+          >
             <ul>
               <li>
-                จำนวนนิสิตทั้งหมด
-                {" "}
-                {students.length}
-                {" "}
-                คน
+                จำนวนนิสิตทั้งหมด{" "}
+                {totalStudents.toLocaleString()} คน
               </li>
 
               <li>
-                จำนวนอาจารย์
-                {" "}
-                {teachers.length}
-                {" "}
-                คน
+                ผู้สำเร็จการศึกษา{" "}
+                {totalGraduates.toLocaleString()} คน
               </li>
 
               <li>
-                ผู้สำเร็จการศึกษา
-                {" "}
-                {graduates.length}
-                {" "}
-                คน
+                จำนวนอาจารย์{" "}
+                {teachers.length.toLocaleString()} คน
               </li>
 
               <li>
-                ข้อมูลภาวะการมีงานทำ
-                {" "}
-                {employment.length}
-                {" "}
-                รายการ
+                อัตราการมีงานทำ{" "}
+                {employmentRate}%
               </li>
             </ul>
           </Card>
@@ -118,3 +285,4 @@ function SummaryPage() {
 }
 
 export default SummaryPage;
+
